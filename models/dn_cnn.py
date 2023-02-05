@@ -42,29 +42,28 @@ class DnCNN(tf.keras.Model):
         self._depth = depth
         self._image_channels = image_channels
         self._batch_norm_kwargs = batch_norm_kwargs if batch_norm_kwargs else {}
-        self._construct()
+        self._build()
 
-    def _construct(self) -> None:
-        self._model = tf.keras.Sequential()
-
-        self._model.add(ConvRELUBlock())
+    def _build(self) -> None:
+        self._layers = [ConvRELUBlock()]
 
         for _ in range(self._depth - 2):
-            self._model.add(ConvRELUBlock(**self._batch_norm_kwargs))
+            self._layers.append(ConvRELUBlock(**self._batch_norm_kwargs))
 
-        self.final_conv_layer = tf.keras.layers.Conv2D(
+        final_conv_layer = tf.keras.layers.Conv2D(
             filters=self._image_channels,
             kernel_size=(3, 3),
             padding="same",
             kernel_initializer=tf.keras.initializers.Orthogonal(),
             use_bias=False,
         )
-        self._model.add(self.final_conv_layer)
+        self._layers.append(final_conv_layer)
+
+    def _forward(self, X) -> tf.Tensor:
+        out = tf.identity(X)  # keeping the input alive so we can subtract it later
+        for layer in self._layers:
+            out = layer(out)
+        return out
 
     def call(self, X):
-        out = self._model(X)
-        return X - out
-
-
-if __name__ == "__main__":
-    model = DnCNN(depth=64, image_channels=3)
+        return X - self._forward(X)
