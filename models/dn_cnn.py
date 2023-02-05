@@ -35,12 +35,14 @@ class DnCNN(tf.keras.Model):
     def __init__(
         self,
         depth: int,
-        image_channels: Optional[int] = 1,
+        image_shape: Tuple,
         batch_norm_kwargs: Optional[dict] = None,
     ):
         super(DnCNN, self).__init__()
         self._depth = depth
-        self._image_channels = image_channels
+        self._image_shape = image_shape
+        self._image_channels = self._image_shape[-1]
+
         self._batch_norm_kwargs = batch_norm_kwargs if batch_norm_kwargs else {}
         self._build()
 
@@ -58,12 +60,19 @@ class DnCNN(tf.keras.Model):
             use_bias=False,
         )
         self._layers.append(final_conv_layer)
+        self.build((None, *self._image_shape))
 
     def _forward(self, X) -> tf.Tensor:
         out = tf.identity(X)  # keeping the input alive so we can subtract it later
         for layer in self._layers:
             out = layer(out)
         return out
+
+    def summary(self):
+        # Workaround: tensorflow does not print the correct tensor shapes when using model.build(). Therefore, a dummy Model() is instantiated.
+        x = tf.keras.Input(shape=self._image_shape)
+        model = tf.keras.Model(inputs=x, outputs=self.call(x))
+        return model.summary()
 
     def call(self, X):
         return X - self._forward(X)
