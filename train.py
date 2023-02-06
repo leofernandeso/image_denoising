@@ -25,9 +25,9 @@ LOSS_LOGGING_FREQUENCY = params["training"]["loss_logging_frequency"]
 
 
 def lr_schedule(epoch, learning_rate):
-    if epoch < 40:
+    if epoch < 100:
         return learning_rate
-    elif epoch % 20 == 0:
+    elif epoch % 50 == 0:
         return learning_rate / 10
     else:
         return learning_rate
@@ -35,7 +35,7 @@ def lr_schedule(epoch, learning_rate):
 
 if __name__ == "__main__":
     # Initializing model
-    model = DnCNN(depth=64)
+    model = DnCNN(depth=17)
 
     # Creating train dataset
     num_epochs = params["training"]["epochs"]
@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
     add_gaussian_noise_ = partial(add_gaussian_noise, sigma=25.0)
     data_generator = ImageDenoisingDataGenerator(
-        base_folder="data",
+        base_folder="data/train",
         noise_adder_callable=add_gaussian_noise_,
         resize_shape=IMAGE_SIZE,
     )
