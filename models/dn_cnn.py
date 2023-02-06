@@ -31,48 +31,25 @@ class ConvRELUBlock(tf.keras.Model):
         return conv_result
 
 
-class DnCNN(tf.keras.Model):
-    def __init__(
-        self,
-        depth: int,
-        image_shape: Tuple,
-        batch_norm_kwargs: Optional[dict] = None,
-    ):
-        super(DnCNN, self).__init__()
-        self._depth = depth
-        self._image_shape = image_shape
-        self._image_channels = self._image_shape[-1]
+def DnCNN(
+    depth: int,
+    image_channels: int = 3,
+    batch_norm_kwargs: Optional[dict] = {},
+) -> tf.keras.models.Model:
+    inputs = tf.keras.Input(shape=(None, None, image_channels))
+    x = ConvRELUBlock()(inputs)
 
-        self._batch_norm_kwargs = batch_norm_kwargs if batch_norm_kwargs else {}
-        self._build()
+    for _ in range(depth - 2):
+        x = ConvRELUBlock(**batch_norm_kwargs)(x)
 
-    def _build(self) -> None:
-        self._layers = [ConvRELUBlock()]
+    final_conv_layer = tf.keras.layers.Conv2D(
+        filters=image_channels,
+        kernel_size=(3, 3),
+        padding="same",
+        kernel_initializer=tf.keras.initializers.Orthogonal(),
+        use_bias=False,
+    )
 
-        for _ in range(self._depth - 2):
-            self._layers.append(ConvRELUBlock(**self._batch_norm_kwargs))
-
-        final_conv_layer = tf.keras.layers.Conv2D(
-            filters=self._image_channels,
-            kernel_size=(3, 3),
-            padding="same",
-            kernel_initializer=tf.keras.initializers.Orthogonal(),
-            use_bias=False,
-        )
-        self._layers.append(final_conv_layer)
-        self.build((None, *self._image_shape))
-
-    def _forward(self, X) -> tf.Tensor:
-        out = tf.identity(X)  # keeping the input alive so we can subtract it later
-        for layer in self._layers:
-            out = layer(out)
-        return out
-
-    def summary(self):
-        # Workaround: tensorflow does not print the correct tensor shapes when using model.build(). Therefore, a dummy Model() is instantiated.
-        x = tf.keras.Input(shape=self._image_shape)
-        model = tf.keras.Model(inputs=x, outputs=self.call(x))
-        return model.summary()
-
-    def call(self, X):
-        return X - self._forward(X)
+    out = final_conv_layer(x)
+    y = tf.keras.layers.subtract([out, inputs])
+    return tf.keras.models.Model(inputs=inputs, outputs=y)
