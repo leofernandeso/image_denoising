@@ -11,7 +11,7 @@ params = {
         "image_shape": (128, 128, 3),
     },
     "training": {
-        "epochs": 400,
+        "epochs": 200,
         "batch_size": 4,
         "visualize": True,
         "visualization_frequency_in_epochs": 50,
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     num_epochs = params["training"]["epochs"]
     batch_size = params["training"]["batch_size"]
 
-    add_gaussian_noise_ = partial(add_gaussian_noise, sigma=25.0)
+    add_gaussian_noise_ = partial(add_gaussian_noise, sigma=15.0)
     data_generator = ImageDenoisingDataGenerator(
         base_folder="data/train",
         noise_adder_callable=add_gaussian_noise_,
@@ -60,7 +60,17 @@ if __name__ == "__main__":
     loss_fn = tf.keras.losses.MeanSquaredError()
 
     # Callbacks
-    callbacks = [tf.keras.callbacks.LearningRateScheduler(lr_schedule)]
+    callbacks = [
+        # tf.keras.callbacks.LearningRateScheduler(lr_schedule),
+        tf.keras.callbacks.ModelCheckpoint(
+            filepath="saved_models/checkpoint",
+            save_weights_only=False,
+            save_freq=10,
+            monitor="loss",
+            save_best_only=True,
+            verbose=1,
+        ),
+    ]
 
     model.compile(optimizer=optimizer, loss=loss_fn)
     model.fit(train_dataset, epochs=num_epochs, callbacks=callbacks)
