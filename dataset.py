@@ -27,8 +27,8 @@ class ImageDenoisingDataGenerator:
         image_arr = tf.keras.preprocessing.image.img_to_array(image)
         if self._resize_shape:
             image_arr = tf.image.resize(image_arr, self._resize_shape)
-        x = image_arr / 255.0  # assuming only 8-bit images
-        y = self._noise_adder_callable(x)
+        y = image_arr / 255.0
+        x = tf.clip_by_value(self._noise_adder_callable(y), 0.0, 1.0)
         return x, y
 
     def __call__(self):
