@@ -25,7 +25,7 @@ LOSS_LOGGING_FREQUENCY = params["training"]["loss_logging_frequency"]
 
 
 def lr_schedule(epoch, learning_rate):
-    if epoch < 100:
+    if epoch < 40:
         return learning_rate
     elif epoch % 20 == 0:
         return learning_rate / 10
@@ -35,7 +35,7 @@ def lr_schedule(epoch, learning_rate):
 
 if __name__ == "__main__":
     # Initializing model
-    model = DnCNN(depth=32)
+    model = DnCNN(depth=64)
 
     # Creating train dataset
     num_epochs = params["training"]["epochs"]
@@ -57,7 +57,11 @@ if __name__ == "__main__":
 
     # Optimizer and loss function
     optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
-    loss_fn = tf.keras.losses.MeanAbsoluteError()
+    loss_fn = tf.keras.losses.MeanSquaredError()
+
+    # Callbacks
+    callbacks = [tf.keras.callbacks.LearningRateScheduler(lr_schedule)]
 
     model.compile(optimizer=optimizer, loss=loss_fn)
-    model.fit(train_dataset, epochs=num_epochs)
+    model.fit(train_dataset, epochs=num_epochs, callbacks=callbacks)
+    model.save("saved_models/dn_cnn")
