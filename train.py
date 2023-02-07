@@ -1,14 +1,16 @@
 import tensorflow as tf
+import albumentations as A
 from functools import partial
 
 from models.dn_cnn import DnCNN
 from dataset import ImageDenoisingDataGenerator
 from noise_models import add_gaussian_noise
+from visualization import visualize_batch
 
 
 params = {
     "data": {
-        "image_shape": (128, 128, 3),
+        "image_shape": (128, 128, 1),
     },
     "training": {
         "epochs": 200,
@@ -23,19 +25,14 @@ IMAGE_SIZE = params["data"]["image_shape"][:2]
 NCHANNELS = params["data"]["image_shape"][-1]
 LOSS_LOGGING_FREQUENCY = params["training"]["loss_logging_frequency"]
 
-
-def lr_schedule(epoch, learning_rate):
-    if epoch < 100:
-        return learning_rate
-    elif epoch % 50 == 0:
-        return learning_rate / 10
-    else:
-        return learning_rate
-
+AUGMENTATION_PIPELINE = A.Compose([
+    A.RandomCrop(128, 128),
+    A.HorizontalFlip(p=0.5)
+])
 
 if __name__ == "__main__":
     # Initializing model
-    model = DnCNN(depth=17)
+    model = DnCNN(depth=17, image_channels=1)
 
     # Creating train dataset
     num_epochs = params["training"]["epochs"]
@@ -45,7 +42,7 @@ if __name__ == "__main__":
     data_generator = ImageDenoisingDataGenerator(
         base_folder="data/train",
         noise_adder_callable=add_gaussian_noise_,
-        resize_shape=IMAGE_SIZE,
+        augmentation_pipeline=AUGMENTATION_PIPELINE
     )
     train_dataset = tf.data.Dataset.from_generator(
         data_generator,

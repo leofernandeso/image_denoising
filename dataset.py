@@ -1,7 +1,7 @@
 import random
 import tensorflow as tf
 from pathlib import Path
-from typing import Tuple, Optional
+from typing import Tuple
 
 from noise_models import NoiseAdderCallable
 
@@ -11,23 +11,26 @@ class ImageDenoisingDataGenerator:
         self,
         base_folder: str,
         noise_adder_callable: NoiseAdderCallable,
-        resize_shape: Optional[Tuple[int, int]] = None,
+        augmentation_pipeline=None,
+        color_mode="grayscale",
     ):
         self._base_folder = base_folder
         self._noise_adder_callable = noise_adder_callable
         self._image_filepaths = list(Path(self._base_folder).iterdir())
         self._length = len(self._image_filepaths)
-        self._resize_shape = resize_shape
+        self._augmentation_pipeline = augmentation_pipeline
+        self._color_mode = color_mode
 
     def __len__(self) -> int:
         return self._length
 
     def __getitem__(self, idx) -> Tuple[tf.Tensor, tf.Tensor]:
-        image = tf.keras.preprocessing.image.load_img(self._image_filepaths[idx])
-        image_arr = tf.keras.preprocessing.image.img_to_array(image)
-        if self._resize_shape:
-            image_arr = tf.image.resize(image_arr, self._resize_shape)
-        y = image_arr / 255.0
+        image = tf.keras.preprocessing.image.load_img(self._image_filepaths[idx], color_mode=self._color_mode)
+        image = tf.keras.preprocessing.image.img_to_array(image)
+        if self._augmentation_pipeline:
+            image = self._augmentation_pipeline(image=image)
+            image = image["image"]
+        y = image / 255.0
         x = tf.clip_by_value(self._noise_adder_callable(y), 0.0, 1.0)
         return x, y
 
