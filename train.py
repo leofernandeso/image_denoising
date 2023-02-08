@@ -5,7 +5,6 @@ from functools import partial
 from models.dn_cnn import DnCNN
 from dataset import ImageDenoisingDataGenerator
 from noise_models import add_gaussian_noise
-from visualization import visualize_batch
 
 
 params = {
@@ -58,17 +57,25 @@ if __name__ == "__main__":
 
     # Callbacks
     callbacks = [
-        # tf.keras.callbacks.LearningRateScheduler(lr_schedule),
+        tf.keras.callbacks.ReduceLROnPlateau(
+            monitor='loss',
+            factor=0.2,
+            patience=10,
+            verbose=1,
+            min_delta=0.0001,
+            min_lr=0,
+        ),
         tf.keras.callbacks.ModelCheckpoint(
             filepath="saved_models/checkpoint",
-            save_weights_only=False,
-            save_freq=10,
+            save_weights_only=True,
+            save_freq=30,
             monitor="loss",
             save_best_only=True,
             verbose=1,
         ),
     ]
 
+    # Training
     model.compile(optimizer=optimizer, loss=loss_fn)
-    model.fit(train_dataset, epochs=num_epochs, callbacks=callbacks)
+    model.fit(train_dataset, epochs=num_epochs, steps_per_epoch=len(data_generator)/batch_size, callbacks=callbacks)
     model.save("saved_models/dn_cnn")
