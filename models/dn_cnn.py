@@ -39,7 +39,7 @@ def DnCNN(
     inputs = tf.keras.Input(shape=(None, None, image_channels))
     x = ConvRELUBlock()(inputs)
 
-    batch_norm_kwargs = {"axis": 3, "momentum": 0.0, "epsilon": 0.0001}
+    batch_norm_kwargs = {"axis": 3, "momentum": 0.9, "epsilon": 0.0001}
     for _ in range(depth - 2):
         x = ConvRELUBlock(batch_norm_kwargs=batch_norm_kwargs)(x)
 
